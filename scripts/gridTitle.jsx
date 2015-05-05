@@ -35,11 +35,13 @@ var GridTitle = React.createClass({
     render: function(){
       this.verifyProps();
       var that = this;
+      var headerGroups = [];
+      var hasColumnGroups = _.pluck(this.props.columnSettings.getMetadataColumns(), "headerGroupName").length > 0;
+      var titleStyles = null;
 
       var nodes = this.props.columnSettings.getColumns().map(function(col, index){
           var columnSort = "";
           var sortComponent = null;
-          var titleStyles = null;
 
           if(that.props.sortSettings.sortColumn == col && that.props.sortSettings.sortAscending){
               columnSort = that.props.sortSettings.sortAscendingClassName;
@@ -67,14 +69,39 @@ var GridTitle = React.createClass({
             }
           }
 
+          if (hasColumnGroups) {
+              var headerGroupName = that.props.columnSettings.getMetadataColumnProperty(col, "headerGroupName");
+              if (headerGroupName) {
+                  headerGroups.push({name: headerGroupName, node: null});
+              } else {
+                  headerGroups.push({name: displayName, node: <th onClick={columnIsSortable ? that.sort : null} data-title={col} className={columnSort} key={displayName} style={titleStyles}>{displayName}{sortComponent}</th>});
+                  return (<th style={titleStyles}></th>);
+              }
+          }
+
           return (<th onClick={columnIsSortable ? that.sort : null} data-title={col} className={columnSort} key={displayName} style={titleStyles}>{displayName}{sortComponent}</th>);
       });
 
       //Get the row from the row settings.
       var className = that.props.rowSettings&&that.props.rowSettings.getHeaderRowMetadataClass() || null;
 
+      var headerGroupNodes = _.map(_.groupBy(headerGroups, function(group) {
+          return group.name;
+      }), function(columns, columnGroup) {
+          if (columns.length > 0) {
+              if (columns[0].node) {
+                  return columns[0].node;
+              } else {
+                return (<th colSpan={columns.length} style={titleStyles}>{columnGroup}</th>);
+              }
+          }
+      });
+
+      var headerGroup = hasColumnGroups ? <tr>{headerGroupNodes}</tr> : "";
+
       return(
           <thead>
+              {headerGroup}
               <tr
                   className={className}
                   style={this.props.headerStyles}>

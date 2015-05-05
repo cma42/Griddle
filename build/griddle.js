@@ -1843,11 +1843,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	    render: function () {
 	        this.verifyProps();
 	        var that = this;
+	        var headerGroups = [];
+	        var hasColumnGroups = _.pluck(this.props.columnSettings.getMetadataColumns(), "headerGroupName").length > 0;
+	        var titleStyles = null;
 
 	        var nodes = this.props.columnSettings.getColumns().map(function (col, index) {
 	            var columnSort = "";
 	            var sortComponent = null;
-	            var titleStyles = null;
 
 	            if (that.props.sortSettings.sortColumn == col && that.props.sortSettings.sortAscending) {
 	                columnSort = that.props.sortSettings.sortAscendingClassName;
@@ -1875,6 +1877,21 @@ return /******/ (function(modules) { // webpackBootstrap
 	                };
 	            }
 
+	            if (hasColumnGroups) {
+	                var headerGroupName = that.props.columnSettings.getMetadataColumnProperty(col, "headerGroupName");
+	                if (headerGroupName) {
+	                    headerGroups.push({ name: headerGroupName, node: null });
+	                } else {
+	                    headerGroups.push({ name: displayName, node: React.createElement(
+	                            "th",
+	                            { onClick: columnIsSortable ? that.sort : null, "data-title": col, className: columnSort, key: displayName, style: titleStyles },
+	                            displayName,
+	                            sortComponent
+	                        ) });
+	                    return React.createElement("th", { style: titleStyles });
+	                }
+	            }
+
 	            return React.createElement(
 	                "th",
 	                { onClick: columnIsSortable ? that.sort : null, "data-title": col, className: columnSort, key: displayName, style: titleStyles },
@@ -1886,9 +1903,32 @@ return /******/ (function(modules) { // webpackBootstrap
 	        //Get the row from the row settings.
 	        var className = that.props.rowSettings && that.props.rowSettings.getHeaderRowMetadataClass() || null;
 
+	        var headerGroupNodes = _.map(_.groupBy(headerGroups, function (group) {
+	            return group.name;
+	        }), function (columns, columnGroup) {
+	            if (columns.length > 0) {
+	                if (columns[0].node) {
+	                    return columns[0].node;
+	                } else {
+	                    return React.createElement(
+	                        "th",
+	                        { colSpan: columns.length, style: titleStyles },
+	                        columnGroup
+	                    );
+	                }
+	            }
+	        });
+
+	        var headerGroup = hasColumnGroups ? React.createElement(
+	            "tr",
+	            null,
+	            headerGroupNodes
+	        ) : "";
+
 	        return React.createElement(
 	            "thead",
 	            null,
+	            headerGroup,
 	            React.createElement(
 	                "tr",
 	                {
