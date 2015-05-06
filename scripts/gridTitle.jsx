@@ -36,7 +36,9 @@ var GridTitle = React.createClass({
       this.verifyProps();
       var that = this;
       var headerGroups = [];
-      var hasColumnGroups = _.pluck(this.props.columnSettings.getMetadataColumns(), "headerGroupName").length > 0;
+      var hasColumnGroups = _.some(this.props.columnSettings.columnMetadata, function (col){
+          return col.headerGroupName && _.contains(this.props.columnSettings.getColumns(), col.columnName);
+      }.bind(this));
       var titleStyles = null;
 
       var nodes = this.props.columnSettings.getColumns().map(function(col, index){
