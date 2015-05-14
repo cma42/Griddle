@@ -35,9 +35,9 @@ var GridTitle = React.createClass({
     render: function(){
       this.verifyProps();
       var that = this;
-      var headerGroups = [];
+      var columnGroups = [];
       var hasColumnGroups = _.some(this.props.columnSettings.columnMetadata, function (col){
-          return col.headerGroupName && _.contains(this.props.columnSettings.getColumns(), col.columnName);
+          return col.columnGroupName && _.contains(this.props.columnSettings.getColumns(), col.columnName);
       }.bind(this));
       var titleStyles = null;
 
@@ -72,11 +72,11 @@ var GridTitle = React.createClass({
           }
 
           if (hasColumnGroups) {
-              var headerGroupName = that.props.columnSettings.getMetadataColumnProperty(col, "headerGroupName");
-              if (headerGroupName) {
-                  headerGroups.push({name: headerGroupName, node: null});
+              var columnGroupName = that.props.columnSettings.getMetadataColumnProperty(col, "columnGroupName");
+              if (columnGroupName) {
+                  columnGroups.push({name: columnGroupName, node: null});
               } else {
-                  headerGroups.push({name: displayName, node: <th onClick={columnIsSortable ? that.sort : null} data-title={col} className={columnSort} key={displayName} style={titleStyles}>{displayName}{sortComponent}</th>});
+                  columnGroups.push({name: displayName, node: <th onClick={columnIsSortable ? that.sort : null} data-title={col} className={columnSort} key={displayName} style={titleStyles}>{displayName}{sortComponent}</th>});
                   return (<th style={titleStyles}></th>);
               }
           }
@@ -87,7 +87,7 @@ var GridTitle = React.createClass({
       //Get the row from the row settings.
       var className = that.props.rowSettings&&that.props.rowSettings.getHeaderRowMetadataClass() || null;
 
-      var headerGroupNodes = _.map(_.groupBy(headerGroups, function(group) {
+      var headerGroupNodes = _.map(_.groupBy(columnGroups, function(group) {
           return group.name;
       }), function(columns, columnGroup) {
           if (columns.length > 0) {
