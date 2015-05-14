@@ -170,7 +170,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	            parentRowExpandedComponent: "▼",
 	            settingsIconComponent: "",
 	            nextIconComponent: "",
-	            previousIconComponent: ""
+	            previousIconComponent: "",
+	            contentFooter: { data: null, useFixed: false }
 	        };
 	    },
 	    /* if we have a filter display the max page and results accordingly */
@@ -614,7 +615,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	                externalLoadingComponent: this.props.externalLoadingComponent,
 	                externalIsLoading: this.props.externalIsLoading,
 	                hasMorePages: hasMorePages,
-	                onRowClick: this.props.onRowClick })
+	                onRowClick: this.props.onRowClick,
+	                contentFooter: this.props.contentFooter })
 	        );
 	    },
 	    getContentSection: function (data, cols, meta, pagingContent, hasMorePages) {
@@ -971,7 +973,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	      parentRowExpandedComponent: "▼",
 	      externalLoadingComponent: null,
 	      externalIsLoading: false,
-	      onRowClick: null
+	      onRowClick: null,
+	      contentFooter: null
 	    };
 	  },
 	  getInitialState: function () {
@@ -1085,7 +1088,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      if (aboveSpacerRow) {
 	        nodes.unshift(aboveSpacerRow);
 	      }
-	      if (belowSpacerRow) {
+	      if (belowSpacerRow && !this.props.contentFooter.data) {
 	        nodes.push(belowSpacerRow);
 	      }
 
@@ -1110,6 +1113,25 @@ return /******/ (function(modules) { // webpackBootstrap
 	    if (nodeContent) {
 	      nodes = nodeContent.nodes;
 	      anyHasChildren = nodeContent.anyHasChildren;
+	    }
+
+	    var contentFooter = "";
+	    if (this.props.contentFooter && this.props.contentFooter.data) {
+	      var contentFooterId = this.props.rowSettings.getRowKey(this.props.contentFooter.data);
+	      contentFooter = React.createElement(GridRowContainer, { useGriddleStyles: that.props.useGriddleStyles,
+	        isSubGriddle: false,
+	        data: that.props.contentFooter.data,
+	        key: contentFooterId + "-container",
+	        uniqueId: contentFooterId,
+	        columnSettings: that.props.columnSettings,
+	        rowSettings: that.props.rowSettings,
+	        paddingHeight: that.props.paddingHeight,
+	        rowHeight: that.props.rowHeight,
+	        tableClassName: that.props.className });
+	      if (!this.props.contentFooter.useFixed) {
+	        nodes.push(contentFooter);
+	        contentFooter = "";
+	      }
 	    }
 
 	    var gridStyle = null;
@@ -1229,20 +1251,34 @@ return /******/ (function(modules) { // webpackBootstrap
 	            loadingContent,
 	            pagingContent
 	          )
+	        ),
+	        React.createElement(
+	          "table",
+	          { className: this.props.className, style: this.props.useGriddleStyles && tableStyle || null },
+	          contentFooter
 	        )
 	      );
 	    }
 
 	    return React.createElement(
 	      "div",
-	      { ref: "scrollable", onScroll: this.gridScroll, style: gridStyle },
+	      null,
+	      React.createElement(
+	        "div",
+	        { ref: "scrollable", onScroll: this.gridScroll, style: gridStyle },
+	        React.createElement(
+	          "table",
+	          { className: this.props.className, style: this.props.useGriddleStyles && tableStyle || null },
+	          tableHeading,
+	          nodes,
+	          loadingContent,
+	          pagingContent
+	        )
+	      ),
 	      React.createElement(
 	        "table",
 	        { className: this.props.className, style: this.props.useGriddleStyles && tableStyle || null },
-	        tableHeading,
-	        nodes,
-	        loadingContent,
-	        pagingContent
+	        contentFooter
 	      )
 	    );
 	  }

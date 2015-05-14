@@ -35,7 +35,8 @@ var GridTable = React.createClass({
       "parentRowExpandedComponent": "▼",
       "externalLoadingComponent": null,
       "externalIsLoading": false,
-      "onRowClick": null
+      "onRowClick": null,
+      "contentFooter": null
     }
   },
   getInitialState: function(){
@@ -149,7 +150,7 @@ var GridTable = React.createClass({
       if (aboveSpacerRow) {
         nodes.unshift(aboveSpacerRow);
       }
-      if (belowSpacerRow) {
+      if (belowSpacerRow && !this.props.contentFooter.data) {
         nodes.push(belowSpacerRow);
       }
 
@@ -174,6 +175,25 @@ var GridTable = React.createClass({
     if (nodeContent) {
       nodes = nodeContent.nodes;
       anyHasChildren = nodeContent.anyHasChildren;
+    }
+
+    var contentFooter = "";
+    if (this.props.contentFooter && this.props.contentFooter.data) {
+        var contentFooterId = this.props.rowSettings.getRowKey(this.props.contentFooter.data);
+        contentFooter = (<GridRowContainer useGriddleStyles={that.props.useGriddleStyles}
+          isSubGriddle={false}
+          data={that.props.contentFooter.data}
+          key={contentFooterId + '-container'}
+          uniqueId={contentFooterId}
+          columnSettings={that.props.columnSettings}
+          rowSettings={that.props.rowSettings}
+          paddingHeight={that.props.paddingHeight}
+          rowHeight={that.props.rowHeight}
+          tableClassName={that.props.className} />);
+      if (!this.props.contentFooter.useFixed) {
+        nodes.push(contentFooter);
+        contentFooter = "";
+      }
     }
 
     var gridStyle = null;
@@ -264,18 +284,26 @@ var GridTable = React.createClass({
                     {pagingContent}
                 </table>
               </div>
+              <table className={this.props.className} style={(this.props.useGriddleStyles&&tableStyle)||null}>
+                {contentFooter}
+              </table>
             </div>;
     }
 
-    return  <div ref="scrollable" onScroll={this.gridScroll} style={gridStyle}>
-              <table className={this.props.className} style={(this.props.useGriddleStyles&&tableStyle)||null}>
-                  {tableHeading}
-                  {nodes}
-                  {loadingContent}
-                  {pagingContent}
-              </table>
+    return <div>
+            <div ref="scrollable" onScroll={this.gridScroll} style={gridStyle}>
+                <table className={this.props.className} style={(this.props.useGriddleStyles&&tableStyle)||null}>
+                    {tableHeading}
+                    {nodes}
+                    {loadingContent}
+                    {pagingContent}
+                 </table>
             </div>
-    }
+            <table className={this.props.className} style={(this.props.useGriddleStyles&&tableStyle)||null}>
+                {contentFooter}
+            </table>
+          </div>;
+  }
 });
 
 module.exports = GridTable;

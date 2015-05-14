@@ -104,7 +104,8 @@ var Griddle = React.createClass({
             "parentRowExpandedComponent": "▼",
             "settingsIconComponent": "",
             "nextIconComponent": "",
-            "previousIconComponent":""
+            "previousIconComponent":"",
+            "contentFooter":{"data": null, "useFixed": false}
         };
     },
     /* if we have a filter display the max page and results accordingly */
@@ -548,7 +549,8 @@ var Griddle = React.createClass({
                 externalLoadingComponent={this.props.externalLoadingComponent}
                 externalIsLoading={this.props.externalIsLoading}
                 hasMorePages={hasMorePages}
-                onRowClick={this.props.onRowClick}/></div>)
+                onRowClick={this.props.onRowClick}
+                contentFooter={this.props.contentFooter}/></div>)
     },
     getContentSection: function(data, cols, meta, pagingContent, hasMorePages){
         if(this.props.useCustomGridComponent && this.props.customGridComponent !== null){
