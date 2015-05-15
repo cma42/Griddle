@@ -43,7 +43,7 @@ describe('GridTable', function() {
             state: 55,
             country: "Test Country"
         },
-        useFixedContentFooter: false
+        useFixed: false
     };
     var columns = _.keys(data[0]);
     var columnSettings = new ColumnProperties(columns, [], "children", [], []);
