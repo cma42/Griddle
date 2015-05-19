@@ -1922,7 +1922,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                } else {
 	                    columnGroups.push({ name: displayName, node: React.createElement(
 	                            "th",
-	                            { onClick: columnIsSortable ? that.sort : null, "data-title": col, className: columnSort, key: displayName, style: titleStyles },
+	                            { onClick: columnIsSortable ? that.sort : null, "data-title": col, className: columnSort, key: col, style: titleStyles },
 	                            displayName,
 	                            sortComponent
 	                        ) });
@@ -1932,7 +1932,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	            return React.createElement(
 	                "th",
-	                { onClick: columnIsSortable ? that.sort : null, "data-title": col, className: columnSort, key: displayName, style: titleStyles },
+	                { onClick: columnIsSortable ? that.sort : null, "data-title": col, className: columnSort, key: col, style: titleStyles },
 	                displayName,
 	                sortComponent
 	            );

@@ -76,12 +76,12 @@ var GridTitle = React.createClass({
               if (columnGroupName) {
                   columnGroups.push({name: columnGroupName, node: null});
               } else {
-                  columnGroups.push({name: displayName, node: <th onClick={columnIsSortable ? that.sort : null} data-title={col} className={columnSort} key={displayName} style={titleStyles}>{displayName}{sortComponent}</th>});
+                  columnGroups.push({name: displayName, node: <th onClick={columnIsSortable ? that.sort : null} data-title={col} className={columnSort} key={col} style={titleStyles}>{displayName}{sortComponent}</th>});
                   return (<th style={titleStyles}></th>);
               }
           }
 
-          return (<th onClick={columnIsSortable ? that.sort : null} data-title={col} className={columnSort} key={displayName} style={titleStyles}>{displayName}{sortComponent}</th>);
+          return (<th onClick={columnIsSortable ? that.sort : null} data-title={col} className={columnSort} key={col} style={titleStyles}>{displayName}{sortComponent}</th>);
       });
 
       //Get the row from the row settings.
