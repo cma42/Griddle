@@ -42,13 +42,36 @@ var GridTable = React.createClass({
   getInitialState: function(){
       return {
          scrollTop: 0,
-         scrollHeight: this.props.bodyHeight,
-         clientHeight: this.props.bodyHeight
+         scrollHeight: this.getBodyHeightInPixel(),
+         clientHeight: this.getBodyHeightInPixel(),
+         windowHeight: window.innerHeight
       }
+  },
+  getBodyHeightInPixel: function() {
+    if (this.shouldHandleWindowResize()) {
+      return (this.state ? this.state.windowHeight : window.innerHeight)
+          * parseFloat(this.props.bodyHeight.substring(0, this.props.bodyHeight.length - 1))
+          / 100;
+    }
+    return this.props.bodyHeight;
+  },
+  shouldHandleWindowResize: function() {
+    return /%$/.test(this.props.bodyHeight);
+  },
+  handleResize: function(evt) {
+    this.setState({
+      windowHeight: window.innerHeight
+    });
+  },
+  componentWillUnmount: function() {
+    window.removeEventListener('resize', this.handleResize);
   },
   componentDidMount: function() {
     // After the initial render, see if we need to load additional pages.
     this.gridScroll();
+    if (this.shouldHandleWindowResize()) {
+      window.addEventListener('resize', this.handleResize);
+    }
   },
   componentDidUpdate: function(prevProps, prevState) {
     // After the subsequent renders, see if we need to load additional pages.
@@ -88,12 +111,15 @@ var GridTable = React.createClass({
       }
     }
   },
-  verifyProps: function(){
-    if(this.props.columnSettings === null){
-       console.error("gridTable: The columnSettings prop is null and it shouldn't be");
+  verifyProps: function() {
+    if (this.props.columnSettings === null) {
+      console.error("gridTable: The columnSettings prop is null and it shouldn't be");
     }
-    if(this.props.rowSettings === null){
-       console.error("gridTable: The rowSettings prop is null and it shouldn't be");
+    if (this.props.rowSettings === null) {
+      console.error("gridTable: The rowSettings prop is null and it shouldn't be");
+    }
+    if (this.props.bodyHeight && isNaN(this.props.bodyHeight) && !/\d*\.?\d*%$/.test(this.props.bodyHeight)) {
+      console.error("gridTable: Configure the height by setting the bodyHeight prop with either a number in pixels or a percentage of the window height.");
     }
   },
   getAdjustedRowHeight: function() {
@@ -211,7 +237,7 @@ var GridTable = React.createClass({
       gridStyle = {
         "position": "relative",
         "overflowY": "scroll",
-        "height": this.props.bodyHeight + "px",
+        "height": this.getBodyHeightInPixel() + "px",
         "width": "100%"
       };
     }
