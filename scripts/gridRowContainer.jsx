@@ -18,7 +18,8 @@ var GridRowContainer = React.createClass({
         "parentRowExpandedClassName": "parent-row expanded",
         "parentRowCollapsedComponent": "▶",
         "parentRowExpandedComponent": "▼",
-        "onRowClick": null
+        "onRowClick": null,
+	    "multipleSelectionSettings": null
       };
     },
     getInitialState: function(){
@@ -70,7 +71,8 @@ var GridRowContainer = React.createClass({
         parentRowCollapsedComponent={this.props.parentRowCollapsedComponent}
         paddingHeight={that.props.paddingHeight}
         rowHeight={that.props.rowHeight}
-        onRowClick={that.props.onRowClick} />
+        onRowClick={that.props.onRowClick}
+	    multipleSelectionSettings={this.props.multipleSelectionSettings} />
       );
 
       var children = null;
@@ -78,6 +80,7 @@ var GridRowContainer = React.createClass({
       if(that.state.showChildren){
           children =  that.props.hasChildren && this.props.data["children"].map(function(row, index){
               if(typeof row["children"] !== "undefined"){
+                var Griddle = require('./griddle.jsx');
                 return (<tr style={{paddingLeft: 5}}>
                           <td colSpan={that.props.columnSettings.getVisibleColumnCount()} className="griddle-parent" style={that.props.useGriddleStyles ? {border: "none", "padding": "0 0 0 5px"} : null}>
                             <Griddle isSubGriddle={true} results={[row]} columns={that.props.columnSettings.getColumns()} tableClassName={that.props.tableClassName} parentRowExpandedClassName={that.props.parentRowExpandedClassName}

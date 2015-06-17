@@ -16,6 +16,7 @@ var CustomRowComponentContainer = require('./customRowComponentContainer.jsx');
 var CustomPaginationContainer = require('./customPaginationContainer.jsx');
 var ColumnProperties = require('./columnProperties');
 var RowProperties = require('./rowProperties');
+var deep = require('./deep');
 var _ = require('underscore');
 
 var Griddle = React.createClass({
@@ -105,8 +106,19 @@ var Griddle = React.createClass({
             "settingsIconComponent": "",
             "nextIconComponent": "",
             "previousIconComponent":"",
+      			"isMultipleSelection": false, //currently does not support subgrids
+            "selectedRowIds": [],
+			      "uniqueIdentifier": "id",
             "contentFooter":{"data": null, "useFixed": false}
         };
+    },
+    propTypes: {
+        isMultipleSelection: React.PropTypes.bool,
+        selectedRowIds: React.PropTypes.oneOfType([
+            React.PropTypes.arrayOf(React.PropTypes.number),
+            React.PropTypes.arrayOf(React.PropTypes.string)
+        ]),
+        uniqueIdentifier: React.PropTypes.string
     },
     /* if we have a filter display the max page and results accordingly */
     setFilter: function(filter) {
@@ -124,9 +136,9 @@ var Griddle = React.createClass({
         // Obtain the state results.
        updatedState.filteredResults = _.filter(this.props.results,
        function(item) {
-            var arr = _.values(item);
+            var arr = deep.keys(item);
             for(var i = 0; i < arr.length; i++){
-               if ((arr[i]||"").toString().toLowerCase().indexOf(filter.toLowerCase()) >= 0){
+               if ((deep.getAt(item, arr[i])||"").toString().toLowerCase().indexOf(filter.toLowerCase()) >= 0){
                 return true;
                }
             }
@@ -145,6 +157,8 @@ var Griddle = React.createClass({
 
         // Set the state.
         that.setState(updatedState);
+
+		    this._resetSelectedRows();
     },
     setPageSize: function(size){
         if(this.props.useExternal) {
@@ -205,6 +219,16 @@ var Griddle = React.createClass({
 
                 that.setState(state);
         }
+
+		//When infinite scrolling is enabled, uncheck the "select all" checkbox, since more unchecked rows will be appended at the end
+		if(this.props.enableInfiniteScroll) {
+			this.setState({
+				isSelectAllChecked: false
+			})
+		} else { //When the paging is done on the server, the previously selected rows on a certain page might not
+			// coincide with the new rows on that exact page page, if moving back and forth. Better reset the selection
+			this._resetSelectedRows();
+		}
     },
     setColumns: function(columns){
         this.columnSettings.filteredColumns = _.isArray(columns) ? columns : [columns];
@@ -241,12 +265,25 @@ var Griddle = React.createClass({
         }
 
         this.setState(state);
+
+		//When the sorting is done on the server, the previously selected rows might not correspond with the new ones.
+		//Better reset the selection
+		this._resetSelectedRows();
     },
     componentWillReceiveProps: function(nextProps) {
         this.setMaxPage(nextProps.results);
 
         if(nextProps.columns !== this.columnSettings.filteredColumns){
             this.columnSettings.filteredColumns = nextProps.columns;
+        }
+
+        if(nextProps.selectedRowIds) {
+            var visibleRows = this.getDataForRender(this.getCurrentResults(), this.columnSettings.getColumns(), true);
+
+            this.setState({
+                isSelectAllChecked: this._getAreAllRowsChecked(nextProps.selectedRowIds, _.pluck(visibleRows, this.props.uniqueIdentifier)),
+                selectedRowIds: nextProps.selectedRowIds
+            });
         }
     },
     getInitialState: function() {
@@ -258,7 +295,9 @@ var Griddle = React.createClass({
             filter: "",
             sortColumn: this.props.initialSort,
             sortAscending: this.props.initialSortAscending,
-            showColumnChooser: false
+            showColumnChooser: false,
+			isSelectAllChecked: false,
+			selectedRowIds: this.props.selectedRowIds
         };
 
         return state;
@@ -268,7 +307,7 @@ var Griddle = React.createClass({
         this.verifyCustom();
 
         this.columnSettings = new ColumnProperties(
-            this.props.results.length > 0 ? _.keys(this.props.results[0]) : [],
+            this.props.results.length > 0 ? deep.keys(this.props.results[0]) : [],
             this.props.columns,
             this.props.childrenColumnName,
             this.props.columnMetadata,
@@ -343,33 +382,34 @@ var Griddle = React.createClass({
     },
     getDataForRender: function(data, cols, pageList){
         var that = this;
-            //get the correct page size
-            if(this.state.sortColumn !== "" || this.props.initialSort !== ""){
-                var sortProperty = _.where(this.props.columnMetadata, {columnName: this.state.sortColumn});
-                sortProperty = (sortProperty.length > 0 && sortProperty[0].hasOwnProperty("sortProperty") && sortProperty[0]["sortProperty"]) || null
 
-                data = _.sortBy(data, function(item){
-                    return sortProperty ? item[that.state.sortColumn||that.props.initialSort][sortProperty] :
-                        item[that.state.sortColumn||that.props.initialSort];
-                });
+        //get the correct page size
+        if(this.state.sortColumn !== "" || this.props.initialSort !== ""){
+            var sortProperty = _.where(this.props.columnMetadata, {columnName: this.state.sortColumn});
+            sortProperty = (sortProperty.length > 0 && sortProperty[0].hasOwnProperty("sortProperty") && sortProperty[0]["sortProperty"]) || null;
 
-                if(this.state.sortAscending === false){
-                    data.reverse();
-                }
+            data = _.sortBy(data, function(item){
+                return sortProperty ? deep.getAt( item, that.state.sortColumn||that.props.initialSort )[sortProperty] :
+                    deep.getAt( item, that.state.sortColumn||that.props.initialSort );
+            });
+
+            if(this.state.sortAscending === false){
+                data.reverse();
             }
+        }
 
-            var currentPage = this.getCurrentPage();
+        var currentPage = this.getCurrentPage();
 
-            if (!this.props.useExternal && pageList && (this.props.resultsPerPage * (currentPage+1) <= this.props.resultsPerPage * this.state.maxPage) && (currentPage >= 0)) {
-                if (this.isInfiniteScrollEnabled()) {
-                  // If we're doing infinite scroll, grab all results up to the current page.
-                  data = _.first(data, (currentPage + 1) * this.props.resultsPerPage);
-                } else {
-                  //the 'rest' is grabbing the whole array from index on and the 'initial' is getting the first n results
-                  var rest = _.rest(data, currentPage * this.props.resultsPerPage);
-                  data = _.initial(rest, rest.length-this.props.resultsPerPage);
-                }
+        if (!this.props.useExternal && pageList && (this.props.resultsPerPage * (currentPage+1) <= this.props.resultsPerPage * this.state.maxPage) && (currentPage >= 0)) {
+            if (this.isInfiniteScrollEnabled()) {
+              // If we're doing infinite scroll, grab all results up to the current page.
+              data = _.first(data, (currentPage + 1) * this.props.resultsPerPage);
+            } else {
+              //the 'rest' is grabbing the whole array from index on and the 'initial' is getting the first n results
+              var rest = _.drop(data, currentPage * this.props.resultsPerPage);
+              data = (_.dropRight || _.initial)(rest, rest.length-this.props.resultsPerPage);
             }
+        }
 
         var meta = this.columnSettings.getMetadataColumns;
 
@@ -418,6 +458,101 @@ var Griddle = React.createClass({
             sortDescendingComponent: this.props.sortDescendingComponent
         }
     },
+	_toggleSelectAll: function () {
+
+		var visibleRows = this.getDataForRender(this.getCurrentResults(), this.columnSettings.getColumns(), true),
+            newIsSelectAllChecked = !this.state.isSelectAllChecked,
+			newSelectedRowIds = JSON.parse(JSON.stringify(this.state.selectedRowIds));
+
+		_.each(visibleRows, function (row) {
+            this._updateSelectedRowIds(row[this.props.uniqueIdentifier], newSelectedRowIds, newIsSelectAllChecked);
+		}, this);
+
+		this.setState({
+			isSelectAllChecked: newIsSelectAllChecked,
+			selectedRowIds: newSelectedRowIds
+		});
+	},
+	_toggleSelectRow: function (row, isChecked) {
+
+        var visibleRows = this.getDataForRender(this.getCurrentResults(), this.columnSettings.getColumns(), true),
+            newSelectedRowIds = JSON.parse(JSON.stringify(this.state.selectedRowIds));
+
+        this._updateSelectedRowIds(row[this.props.uniqueIdentifier], newSelectedRowIds, isChecked);
+
+		this.setState({
+			isSelectAllChecked: this._getAreAllRowsChecked(newSelectedRowIds, _.pluck(visibleRows, this.props.uniqueIdentifier)),
+            selectedRowIds: newSelectedRowIds
+		});
+	},
+    _updateSelectedRowIds: function (id, selectedRowIds, isChecked) {
+
+        var isFound;
+
+        if(isChecked) {
+            isFound = _.find(selectedRowIds, function (item) {
+                return id === item;
+            });
+
+            if(isFound === undefined) {
+                selectedRowIds.push(id);
+            }
+        } else {
+            selectedRowIds.splice(selectedRowIds.indexOf(id), 1);
+        }
+    },
+	_getIsSelectAllChecked: function () {
+
+		return this.state.isSelectAllChecked;
+	},
+    _getAreAllRowsChecked: function (selectedRowIds, visibleRowIds) {
+
+        var i, isFound;
+
+        if(selectedRowIds.length !== visibleRowIds.length) {
+            return false;
+        }
+
+        for(i = 0; i < selectedRowIds.length; i++) {
+            isFound = _.find(visibleRowIds, function (visibleRowId) {
+                return selectedRowIds[i] === visibleRowId;
+            });
+
+            if(isFound === undefined) {
+                return false;
+            }
+        }
+
+        return true;
+    },
+    _getIsRowChecked: function (row) {
+
+        return this.state.selectedRowIds.indexOf(row[this.props.uniqueIdentifier]) > -1 ? true : false;
+    },
+	getSelectedRowIds: function () {
+
+		return this.state.selectedRowIds;
+	},
+	_resetSelectedRows: function () {
+
+		this.setState({
+			isSelectAllChecked: false,
+			selectedRowIds: []
+		})
+	},
+	//This takes the props relating to multiple selection and puts them in one object
+	getMultipleSelectionObject: function(){
+
+		return {
+			isMultipleSelection: _.find(this.props.results, function (result) { return 'children' in result}) ? false : this.props.isMultipleSelection, //does not support subgrids
+			toggleSelectAll: this._toggleSelectAll,
+			getIsSelectAllChecked: this._getIsSelectAllChecked,
+
+			toggleSelectRow: this._toggleSelectRow,
+			getSelectedRowIds: this.getSelectedRowIds,
+            getIsRowChecked: this._getIsRowChecked
+		}
+	},
     isInfiniteScrollEnabled: function(){
       // If a custom pager is included, don't allow for infinite scrolling.
       if (this.props.useCustomPagerComponent) {
@@ -522,11 +657,13 @@ var Griddle = React.createClass({
     },
     getStandardGridSection: function(data, cols, meta, pagingContent, hasMorePages){
         var sortProperties = this.getSortObject();
+		var multipleSelectionProperties = this.getMultipleSelectionObject();
 
         return (<div className='griddle-body'><GridTable useGriddleStyles={this.props.useGriddleStyles}
                 columnSettings={this.columnSettings}
                 rowSettings = {this.rowSettings}
                 sortSettings={sortProperties}
+				multipleSelectionSettings={multipleSelectionProperties}
                 isSubGriddle={this.props.isSubGriddle}
                 useGriddleIcons={this.props.useGriddleIcons}
                 useFixedLayout={this.props.useFixedLayout}
@@ -601,7 +738,7 @@ var Griddle = React.createClass({
         var meta = this.columnSettings.getMetadataColumns();
 
         // Grab the column keys from the first results
-        keys = _.keys(_.omit(results[0], meta));
+        keys = deep.keys(_.omit(results[0], meta));
 
         // sort keys by order
         keys = this.columnSettings.orderColumns(keys);

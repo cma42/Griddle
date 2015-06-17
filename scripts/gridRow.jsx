@@ -4,6 +4,7 @@
 var React = require('react');
 var _ = require('underscore');
 var ColumnProperties = require('./columnProperties.js');
+var deep = require('./deep.js');
 
 var GridRow = React.createClass({
     getDefaultProps: function(){
@@ -23,7 +24,8 @@ var GridRow = React.createClass({
         "parentRowExpandedClassName": "parent-row expanded",
         "parentRowCollapsedComponent": "▶",
         "parentRowExpandedComponent": "▼",
-        "onRowClick": null
+        "onRowClick": null,
+	    "multipleSelectionSettings": null
       }
     },
     handleClick: function(e){
@@ -33,6 +35,19 @@ var GridRow = React.createClass({
             this.props.toggleChildren();
         }
     },
+    handleSelectionChange: function(e) {
+      //hack to get around warning that's not super useful in this case
+      return;
+    },
+	handleSelectClick: function(e) {
+		if(this.props.multipleSelectionSettings.isMultipleSelection) {
+			if(e.target.type === "checkbox") {
+				this.props.multipleSelectionSettings.toggleSelectRow(this.props.data, this.refs.selected.getDOMNode().checked);
+			} else {
+				this.props.multipleSelectionSettings.toggleSelectRow(this.props.data, !this.refs.selected.getDOMNode().checked)
+			}
+		}
+	},
     verifyProps: function(){
         if(this.props.columnSettings === null){
            console.error("gridRow: The columnSettings prop is null and it shouldn't be");
@@ -65,7 +80,7 @@ var GridRow = React.createClass({
 
         _.defaults(dataView, defaults);
 
-        var data = _.pairs(_.pick(dataView, columns));
+        var data = _.pairs(deep.pick(dataView, columns));
 
         var nodes = data.map((col, index) => {
             var returnValue = null;
@@ -89,6 +104,20 @@ var GridRow = React.createClass({
             return returnValue || (<td onClick={this.handleClick} key={index} style={columnStyles}>{firstColAppend}{col[1]}</td>);
         });
 
+        if(nodes && this.props.multipleSelectionSettings && this.props.multipleSelectionSettings.isMultipleSelection) {
+          var selectedRowIds = this.props.multipleSelectionSettings.getSelectedRowIds();
+
+          nodes.unshift(
+                  <td key="selection" style={columnStyles}>
+                    <input
+                        type="checkbox"
+                        checked={this.props.multipleSelectionSettings.getIsRowChecked(dataView)}
+                        onChange={this.handleSelectionChange}
+                        ref="selected" />
+                  </td>
+                );
+        }
+
         //Get the row from the row settings.
         var className = that.props.rowSettings&&that.props.rowSettings.getBodyRowMetadataClass(that.props.data) || "standard-row";
 
@@ -97,7 +126,7 @@ var GridRow = React.createClass({
         } else if (that.props.hasChildren){
             className = that.props.showChildren ? this.props.parentRowExpandedClassName : this.props.parentRowCollapsedClassName;
         }
-        return (<tr className={className}>{nodes}</tr>);
+        return (<tr onClick={this.props.multipleSelectionSettings && this.props.multipleSelectionSettings.isMultipleSelection ? this.handleSelectClick : null} className={className}>{nodes}</tr>);
     }
 });
 

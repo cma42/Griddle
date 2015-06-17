@@ -3,6 +3,7 @@ jest.dontMock('../gridRow.jsx');
 jest.dontMock('../gridRowContainer.jsx');
 jest.dontMock('../columnProperties.js');
 jest.dontMock('../rowProperties.js');
+jest.dontMock('../deep.js');
 
 var React = require('react/addons');
 var GridTable = require('../gridTable.jsx');

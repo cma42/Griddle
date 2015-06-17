@@ -9,6 +9,7 @@ var ColumnProperties = require('../columnProperties.js');
 var _ = require('underscore');
 
 describe('GridTitle', function() {
+
 	var getColumnSettings = function(columns, columnMetaData) {
 		return new ColumnProperties(columns, [], "children", columnMetaData, [])
 	};
@@ -23,7 +24,18 @@ describe('GridTitle', function() {
 			sortAscendingComponent: null,
 			sortDescendingComponent: null
 		};
-		return TestUtils.renderIntoDocument(<GridTitle columns={columns} columnSettings={getColumnSettings(columns, columnMetaData)} sortSettings={sortObject}/>);
+
+    multipleSelectSettings = {
+      isMultipleSelection: false,
+      toggleSelectAll: function(){},
+      getIsSelectAllChecked: function(){},
+
+      toggleSelectRow: function(){},
+      getSelectedRowIds: function(){},
+      getIsRowChecked: function(){}
+    };
+
+		return TestUtils.renderIntoDocument(<GridTitle columns={columns} columnSettings={getColumnSettings(columns, columnMetaData)} sortSettings={sortObject} multipleSelectionSettings={multipleSelectSettings} />);
 	};
 
 	it('calls method when clicked', function() {
@@ -66,6 +78,7 @@ describe('GridTitle', function() {
 		var title = getRenderedTitle(["one", "two", "three"], columnMetaData);
 
 		var node = TestUtils.findRenderedDOMComponentWithTag(title, 'thead');
+
 		var headings = TestUtils.scryRenderedDOMComponentsWithTag(node, 'th');
 
 		var mock = jest.genMockFunction(); 
